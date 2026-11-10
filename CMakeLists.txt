@@ -39,7 +39,8 @@ endif()
 set(HIPAUG_HIP_SOURCES
   src/hip/resize.hip
   src/hip/cmn.hip
-  src/hip/blur.hip)
+  src/hip/blur.hip
+  src/hip/fused.hip)
 
 if(HIPAUG_HIP_EMULATION)
   # No ROCm needed: the same .hip sources are built as C++ and run on the CPU.
