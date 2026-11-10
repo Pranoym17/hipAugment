@@ -14,3 +14,13 @@ jobs:
         run: HIPAUG_HIP=OFF scripts/build.sh
       - name: Test
         run: scripts/test.sh
+
+  kernels-on-emulation:
+    name: HIP kernels on the CPU emulation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: HIPAUG_HIP=OFF HIPAUG_EMULATION=ON scripts/build.sh
+      - name: Test
+        run: scripts/test.sh
