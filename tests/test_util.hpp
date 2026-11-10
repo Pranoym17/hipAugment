@@ -87,8 +87,7 @@ inline std::vector<Case> standard_cases(bool roi_equals_out) {
       c.out_w = 15;
       c.out_h = 13;
     }
-    c.batch.rois = {Roi{0, 0, 10, 10}, Roi{30, 20, 10, 10}, Roi{0, 20, 10, 10},
-                    Roi{30, 0, 10, 10}};
+    c.batch.rois = {Roi{0, 0, 10, 10}, Roi{30, 20, 10, 10}, Roi{0, 20, 10, 10}, Roi{30, 0, 10, 10}};
     cases.push_back(std::move(c));
   }
   { // 1x1 ROI

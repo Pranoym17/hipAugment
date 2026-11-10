@@ -164,8 +164,7 @@ Status process_batch(const Options& o, HostBatch& b, const fs::path& out_dir, co
     if (st != Status::Ok)
       return st;
     for (int i = 0; i < n; ++i)
-      save_png(out_path(i), o.out_w, o.out_h, &out[i * od.stride_n],
-               static_cast<int>(od.stride_h));
+      save_png(out_path(i), o.out_w, o.out_h, &out[i * od.stride_n], static_cast<int>(od.stride_h));
     return Status::Ok;
   }
 

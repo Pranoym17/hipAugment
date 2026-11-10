@@ -26,7 +26,9 @@ TensorDesc make_desc(int n, int h_max, int w_max, Layout layout, DType dtype) {
   return d;
 }
 
-size_t num_elements(const TensorDesc& d) { return static_cast<size_t>(d.n) * d.stride_n; }
+size_t num_elements(const TensorDesc& d) {
+  return static_cast<size_t>(d.n) * d.stride_n;
+}
 
 const char* to_string(Status s) {
   switch (s) {

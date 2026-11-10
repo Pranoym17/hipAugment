@@ -50,19 +50,23 @@ void launch(dim3 grid, dim3 block, const std::function<void()>& body);
 void syncthreads();
 } // namespace hipemu
 
-inline void __syncthreads() { hipemu::syncthreads(); }
+inline void __syncthreads() {
+  hipemu::syncthreads();
+}
 
 // Arguments are captured by value, as a real launch copies them to the device.
-#define hipLaunchKernelGGL(kernel, grid, block, shared_bytes, stream, ...)                        \
-  do {                                                                                            \
-    (void)(stream);                                                                               \
-    hipemu::launch((grid), (block), [=]() { kernel(__VA_ARGS__); });                              \
+#define hipLaunchKernelGGL(kernel, grid, block, shared_bytes, stream, ...)                         \
+  do {                                                                                             \
+    (void)(stream);                                                                                \
+    hipemu::launch((grid), (block), [=]() { kernel(__VA_ARGS__); });                               \
   } while (0)
 
 inline const char* hipGetErrorString(hipError_t e) {
   return e == hipSuccess ? "hipSuccess" : "emulated HIP error";
 }
-inline hipError_t hipGetLastError() { return hipSuccess; }
+inline hipError_t hipGetLastError() {
+  return hipSuccess;
+}
 
 template <typename T> hipError_t hipMalloc(T** ptr, size_t bytes) {
   *ptr = static_cast<T*>(std::malloc(bytes ? bytes : 1));
@@ -82,9 +86,15 @@ inline hipError_t hipStreamCreate(hipStream_t* s) {
   *s = nullptr;
   return hipSuccess;
 }
-inline hipError_t hipStreamDestroy(hipStream_t) { return hipSuccess; }
-inline hipError_t hipStreamSynchronize(hipStream_t) { return hipSuccess; }
-inline hipError_t hipDeviceSynchronize() { return hipSuccess; }
+inline hipError_t hipStreamDestroy(hipStream_t) {
+  return hipSuccess;
+}
+inline hipError_t hipStreamSynchronize(hipStream_t) {
+  return hipSuccess;
+}
+inline hipError_t hipDeviceSynchronize() {
+  return hipSuccess;
+}
 
 inline hipError_t hipEventCreate(hipEvent_t* e) {
   *e = new hipEmuEvent{};
@@ -98,7 +108,9 @@ inline hipError_t hipEventRecord(hipEvent_t e, hipStream_t) {
   e->t = std::chrono::steady_clock::now();
   return hipSuccess;
 }
-inline hipError_t hipEventSynchronize(hipEvent_t) { return hipSuccess; }
+inline hipError_t hipEventSynchronize(hipEvent_t) {
+  return hipSuccess;
+}
 inline hipError_t hipEventElapsedTime(float* ms, hipEvent_t start, hipEvent_t stop) {
   *ms = std::chrono::duration<float, std::milli>(stop->t - start->t).count();
   return hipSuccess;

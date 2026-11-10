@@ -105,7 +105,7 @@ endif()
 
 # ---- python --------------------------------------------------------------------
 if(HIPAUG_BUILD_PYTHON)
-  if(NOT HIPAUG_BUILD_HIP)
+  if(NOT HIPAUG_BUILD_HIP AND NOT HIPAUG_HIP_EMULATION)
     message(FATAL_ERROR "HIPAUG_BUILD_PYTHON needs HIPAUG_BUILD_HIP=ON")
   endif()
   add_subdirectory(python)

@@ -195,9 +195,8 @@ TEST(GpuBlur, BothKernelsMatchCpuOnStandardCases) {
         const Batch& b = cs.batch;
         // Start from inverted pixels so an unwritten pixel cannot pass by accident.
         std::vector<uint8_t> ref = inverted(b.data), out = inverted(b.data);
-        ASSERT_EQ(
-            cpu::gaussian_blur(b.desc, b.data.data(), b.rois.data(), ref.data(), ksize, 1.2f),
-            Status::Ok);
+        ASSERT_EQ(cpu::gaussian_blur(b.desc, b.data.data(), b.rois.data(), ref.data(), ksize, 1.2f),
+                  Status::Ok);
         ASSERT_EQ(gpu_blur(impl.fn, b, ksize, 1.2f, out), Status::Ok);
         EXPECT_LE(max_abs_diff(out, ref), kTolU8)
             << impl.name << " ksize=" << ksize << " " << cs.name;

@@ -17,9 +17,15 @@ inline dim3 grid_for(int w, int h, int n) {
   return dim3((w + kBlockW - 1) / kBlockW, (h + kBlockH - 1) / kBlockH, n);
 }
 
-__device__ inline int imin(int a, int b) { return a < b ? a : b; }
-__device__ inline int imax(int a, int b) { return a > b ? a : b; }
-__device__ inline int iclamp(int v, int lo, int hi) { return imin(imax(v, lo), hi); }
+__device__ inline int imin(int a, int b) {
+  return a < b ? a : b;
+}
+__device__ inline int imax(int a, int b) {
+  return a > b ? a : b;
+}
+__device__ inline int iclamp(int v, int lo, int hi) {
+  return imin(imax(v, lo), hi);
+}
 
 // A ROI clamped to the padded image: columns [x0, x1) and rows [y0, y1).
 // The ROI array comes from the caller's device memory and cannot be validated on
@@ -37,7 +43,9 @@ __device__ inline Box clamp_roi(const Roi& r, int w_max, int h_max) {
   return b;
 }
 
-__device__ inline bool is_empty(const Box& b) { return b.x1 <= b.x0 || b.y1 <= b.y0; }
+__device__ inline bool is_empty(const Box& b) {
+  return b.x1 <= b.x0 || b.y1 <= b.y0;
+}
 
 // Offset of element (n, y, x, c): n * stride_n + y * stride_h + x * stride_w + c * stride_c.
 __device__ inline size_t offset(const TensorDesc& d, int n, int y, int x, int c) {
