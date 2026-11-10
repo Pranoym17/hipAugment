@@ -86,7 +86,7 @@ if(HIPAUG_BUILD_HIP)
 endif()
 
 # ---- command line tool and benchmark harness --------------------------------
-if(HIPAUG_BUILD_TOOLS AND EXISTS ${PROJECT_SOURCE_DIR}/tools/cli/main.cpp)
+if(HIPAUG_BUILD_TOOLS)
   add_executable(hipaug_cli
     tools/cli/main.cpp
     tools/cli/run.cpp
