@@ -129,6 +129,27 @@ inline Batch crop_image(const Batch& b, int n) {
   return out;
 }
 
+// Invert every byte that lies outside its image's ROI. An op that only reads inside
+// the ROI must give the same output before and after.
+inline void scramble_outside_roi(Batch& b) {
+  for (int n = 0; n < b.desc.n; ++n) {
+    const Roi r = b.rois[n];
+    for (int y = 0; y < b.desc.h_max; ++y)
+      for (int x = 0; x < b.desc.w_max; ++x) {
+        if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h)
+          continue;
+        for (int c = 0; c < 3; ++c)
+          b.data[n * b.desc.stride_n + y * b.desc.stride_h + x * b.desc.stride_w + c] ^= 0xFF;
+      }
+  }
+}
+
+// The elements of image n, as their own vector.
+template <typename T>
+std::vector<T> image_slice(const std::vector<T>& buf, const TensorDesc& d, int n) {
+  return std::vector<T>(buf.begin() + n * d.stride_n, buf.begin() + (n + 1) * d.stride_n);
+}
+
 inline int max_abs_diff(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b) {
   if (a.size() != b.size())
     return 1 << 30;
