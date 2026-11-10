@@ -13,7 +13,8 @@ add_executable(hipaug_cpu_tests
   test_core.cpp
   test_cpu_resize.cpp
   test_cpu_cmn.cpp
-  test_cpu_blur.cpp)
+  test_cpu_blur.cpp
+  test_cpu_fused.cpp)
 target_include_directories(hipaug_cpu_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(hipaug_cpu_tests PRIVATE hipaug GTest::gtest_main)
 gtest_discover_tests(hipaug_cpu_tests)

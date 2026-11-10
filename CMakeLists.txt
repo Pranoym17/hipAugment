@@ -26,7 +26,8 @@ add_library(hipaug STATIC
   src/common/validate.cpp
   src/cpu/resize.cpp
   src/cpu/cmn.cpp
-  src/cpu/blur.cpp)
+  src/cpu/blur.cpp
+  src/cpu/fused.cpp)
 target_include_directories(hipaug PUBLIC include PRIVATE src)
 target_compile_options(hipaug PRIVATE -Wall -Wextra ${HIPAUG_FP_FLAGS})
 if(OpenMP_CXX_FOUND)
