@@ -32,6 +32,8 @@ void usage() {
       "      --size       output size (default 224x224)\n"
       "      --src-min    smallest source image side (default 256)\n"
       "      --src-max    largest source image side (default 512)\n"
+      "      --pipelines  comma separated subset of: resize, crop_mirror_normalize,\n"
+      "                   gaussian_blur_3x3, gaussian_blur_5x5, resize_cmn (default all)\n"
       "      --warmup     GPU warmup runs (default 10)\n"
       "      --runs       GPU timed runs (default 100)\n"
       "      --cpu-runs   CPU timed runs (default 10)\n"

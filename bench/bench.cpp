@@ -48,7 +48,13 @@ struct Config {
   int warmup = 10, runs = 100, cpu_runs = 10;
   double peak_gbps = 5300.0; // MI300X HBM3 peak, in GB/s
   bool run_cpu = true, run_gpu = true;
+  std::vector<std::string> pipelines; // empty means all
   std::string out = "results.csv";
+
+  bool want(const std::string& pipeline) const {
+    return pipelines.empty() ||
+           std::find(pipelines.begin(), pipelines.end(), pipeline) != pipelines.end();
+  }
 };
 
 struct Row {
@@ -159,12 +165,14 @@ bool bench_cpu(const Config& cfg, const Workload& w, std::vector<Row>& rows) {
     return true;
   };
 
-  bool ok = add("resize", "cpu_ref", time_cpu(cfg, [&] {
-                  return cpu::resize(w.in, w.src.data(), w.roi_full.data(), w.out_u8,
-                                     dst_u8.data());
-                }),
-                w.resize_read, w.out_u8_bytes);
-  ok = ok && add("crop_mirror_normalize", "cpu_ref", time_cpu(cfg, [&] {
+  bool ok = true;
+  if (cfg.want("resize"))
+    ok = add("resize", "cpu_ref", time_cpu(cfg, [&] {
+               return cpu::resize(w.in, w.src.data(), w.roi_full.data(), w.out_u8, dst_u8.data());
+             }),
+             w.resize_read, w.out_u8_bytes);
+  if (cfg.want("crop_mirror_normalize"))
+    ok = ok && add("crop_mirror_normalize", "cpu_ref", time_cpu(cfg, [&] {
                    return cpu::crop_mirror_normalize(w.in, w.src.data(), w.roi_crop.data(),
                                                      w.mirror.data(), kMean, kStd, w.out_f32,
                                                      dst_f32.data());
@@ -172,12 +180,16 @@ bool bench_cpu(const Config& cfg, const Workload& w, std::vector<Row>& rows) {
                  w.out_u8_bytes, w.out_f32_bytes);
   for (int ksize : {3, 5}) {
     const std::string name = ksize == 3 ? "gaussian_blur_3x3" : "gaussian_blur_5x5";
+    if (!cfg.want(name))
+      continue;
     ok = ok && add(name.c_str(), "cpu_ref", time_cpu(cfg, [&] {
                      return cpu::gaussian_blur(w.in, w.src.data(), w.roi_full.data(),
                                                blur_dst.data(), ksize, kSigma);
                    }),
                    w.blur_bytes, w.blur_bytes);
   }
+  if (!cfg.want("resize_cmn"))
+    return ok;
   ok = ok && add("resize_cmn", "cpu_ref_separate", time_cpu(cfg, [&] {
                    const Status st = cpu::resize(w.in, w.src.data(), w.roi_full.data(), w.out_u8,
                                                  dst_u8.data());
@@ -267,23 +279,29 @@ Status bench_gpu(const Config& cfg, const Workload& w, std::vector<Row>& rows) {
     ms.clear();
   };
 
-  st = time_gpu(cfg, [&] {
-    return resize(w.in, src.get(), roi_full.get(), w.out_u8, dst_u8.get(), nullptr);
-  }, ms);
-  if (st != Status::Ok)
-    return st;
-  add("resize", "hip", w.resize_read, w.out_u8_bytes);
+  if (cfg.want("resize")) {
+    st = time_gpu(cfg, [&] {
+      return resize(w.in, src.get(), roi_full.get(), w.out_u8, dst_u8.get(), nullptr);
+    }, ms);
+    if (st != Status::Ok)
+      return st;
+    add("resize", "hip", w.resize_read, w.out_u8_bytes);
+  }
 
-  st = time_gpu(cfg, [&] {
-    return crop_mirror_normalize(w.in, src.get(), roi_crop.get(), mirror.get(), kMean, kStd,
-                                 w.out_f32, dst_f32.get(), nullptr);
-  }, ms);
-  if (st != Status::Ok)
-    return st;
-  add("crop_mirror_normalize", "hip", w.out_u8_bytes, w.out_f32_bytes);
+  if (cfg.want("crop_mirror_normalize")) {
+    st = time_gpu(cfg, [&] {
+      return crop_mirror_normalize(w.in, src.get(), roi_crop.get(), mirror.get(), kMean, kStd,
+                                   w.out_f32, dst_f32.get(), nullptr);
+    }, ms);
+    if (st != Status::Ok)
+      return st;
+    add("crop_mirror_normalize", "hip", w.out_u8_bytes, w.out_f32_bytes);
+  }
 
   for (int ksize : {3, 5}) {
     const std::string name = ksize == 3 ? "gaussian_blur_3x3" : "gaussian_blur_5x5";
+    if (!cfg.want(name))
+      continue;
     st = time_gpu(cfg, [&] {
       return detail::gaussian_blur_direct(w.in, src.get(), roi_full.get(), blur_dst.get(), ksize,
                                           kSigma, nullptr);
@@ -300,6 +318,9 @@ Status bench_gpu(const Config& cfg, const Workload& w, std::vector<Row>& rows) {
       return st;
     add(name, "hip_lds", w.blur_bytes, w.blur_bytes);
   }
+
+  if (!cfg.want("resize_cmn"))
+    return Status::Ok;
 
   // Separate path: resize into a u8 intermediate, then normalize the whole intermediate.
   st = time_gpu(cfg, [&] {
@@ -379,6 +400,25 @@ int cmd_bench(const cli::Args& args) {
   cfg.run_cpu = !args.has("no-cpu");
   cfg.run_gpu = !args.has("no-gpu");
   cfg.out = args.get("out", cfg.out);
+  if (args.has("pipelines")) {
+    std::string item;
+    for (char ch : args.get("pipelines", "") + ",") {
+      if (ch != ',') {
+        item += ch;
+        continue;
+      }
+      static const char* known[] = {"resize", "crop_mirror_normalize", "gaussian_blur_3x3",
+                                    "gaussian_blur_5x5", "resize_cmn"};
+      if (item.empty())
+        continue;
+      if (std::find(std::begin(known), std::end(known), item) == std::end(known)) {
+        std::fprintf(stderr, "hipaug: unknown pipeline '%s'\n", item.c_str());
+        return 2;
+      }
+      cfg.pipelines.push_back(item);
+      item.clear();
+    }
+  }
   if (cfg.batches.empty() || cfg.src_min <= 0 || cfg.src_max < cfg.src_min || cfg.runs <= 0 ||
       cfg.cpu_runs <= 0 || cfg.warmup < 0 || cfg.peak_gbps <= 0) {
     std::fprintf(stderr, "hipaug: invalid bench options\n");
