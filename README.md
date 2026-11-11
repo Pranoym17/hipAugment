@@ -6,6 +6,8 @@ shared-memory tiling affect the preprocessing stage of an image-training pipelin
 Its batch and ROI model is inspired by ROCm Performance Primitives; it is an
 independent implementation.
 
+https://github.com/user-attachments/assets/b54787b6-1ed9-4c69-b86d-e2074c3e6ffc
+
 **Status:** CPU functionality and kernel emulation were tested during initial
 development. Real GPU correctness and performance are still unverified. An
 experimental CUDA build reuses the kernel sources for NVIDIA GPUs; its first
