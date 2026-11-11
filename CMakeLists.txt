@@ -2,11 +2,16 @@ cmake_minimum_required(VERSION 3.21)
 project(hipAugment VERSION 0.1.0 LANGUAGES CXX)
 
 option(HIPAUG_BUILD_HIP "Build the HIP (GPU) backend. Needs ROCm." ON)
-option(HIPAUG_BUILD_PYTHON "Build the pybind11 Python module. Needs the HIP backend." OFF)
+option(HIPAUG_BUILD_CUDA "Build the shared kernels for NVIDIA GPUs. Needs CUDA." OFF)
+option(HIPAUG_BUILD_PYTHON "Build the pybind11 Python module. Needs a GPU backend or emulation." OFF)
 option(HIPAUG_HIP_EMULATION
   "Test only: compile the HIP kernels as C++ against a CPU emulation of the HIP runtime." OFF)
 option(HIPAUG_BUILD_TESTS "Build the GoogleTest suite." ON)
 option(HIPAUG_BUILD_TOOLS "Build the hipaug command line tool." ON)
+
+if(HIPAUG_BUILD_CUDA AND (HIPAUG_BUILD_HIP OR HIPAUG_HIP_EMULATION))
+  message(FATAL_ERROR "CUDA requires HIPAUG_BUILD_HIP=OFF and HIPAUG_HIP_EMULATION=OFF")
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -85,6 +90,23 @@ if(HIPAUG_BUILD_HIP)
   target_link_libraries(hipaug PUBLIC hip::host)
 endif()
 
+# The same .hip kernel bodies are compiled by nvcc. Only runtime calls and launch
+# syntax are adapted; NVIDIA builds do not need ROCm or a separate kernel copy.
+if(HIPAUG_BUILD_CUDA)
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+  set_source_files_properties(${HIPAUG_HIP_SOURCES} PROPERTIES LANGUAGE CUDA)
+  add_library(hipaug_cuda OBJECT ${HIPAUG_HIP_SOURCES})
+  set_target_properties(hipaug_cuda PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED ON)
+  target_include_directories(hipaug_cuda PRIVATE include src)
+  target_compile_definitions(hipaug_cuda PRIVATE HIPAUG_HAS_HIP=1 HIPAUG_USE_CUDA=1)
+  target_compile_options(hipaug_cuda PRIVATE --fmad=false -Xcompiler=-Wall,-Wextra,-ffp-contract=off)
+  target_link_libraries(hipaug_cuda PRIVATE CUDA::cudart)
+  target_sources(hipaug PRIVATE $<TARGET_OBJECTS:hipaug_cuda>)
+  target_compile_definitions(hipaug PUBLIC HIPAUG_HAS_HIP=1 HIPAUG_USE_CUDA=1)
+  target_link_libraries(hipaug PUBLIC CUDA::cudart)
+endif()
+
 # ---- command line tool and benchmark harness --------------------------------
 if(HIPAUG_BUILD_TOOLS)
   add_executable(hipaug_cli
@@ -105,8 +127,8 @@ endif()
 
 # ---- python --------------------------------------------------------------------
 if(HIPAUG_BUILD_PYTHON)
-  if(NOT HIPAUG_BUILD_HIP AND NOT HIPAUG_HIP_EMULATION)
-    message(FATAL_ERROR "HIPAUG_BUILD_PYTHON needs HIPAUG_BUILD_HIP=ON")
+  if(NOT HIPAUG_BUILD_HIP AND NOT HIPAUG_HIP_EMULATION AND NOT HIPAUG_BUILD_CUDA)
+    message(FATAL_ERROR "HIPAUG_BUILD_PYTHON needs a GPU backend or HIP emulation")
   endif()
   add_subdirectory(python)
 endif()

@@ -4,7 +4,7 @@
 
 #include <cstdio>
 
-#include <hip/hip_runtime.h>
+#include "hipaug/runtime.hpp"
 
 #include "hipaug/hipaug.hpp"
 

@@ -46,7 +46,11 @@ struct Config {
   int out_w = 224, out_h = 224;
   int src_min = 256, src_max = 512;
   int warmup = 10, runs = 100, cpu_runs = 10;
+#if defined(HIPAUG_USE_CUDA)
+  double peak_gbps = 0.0; // must be supplied for the actual NVIDIA device
+#else
   double peak_gbps = 5300.0; // MI300X HBM3 peak, in GB/s
+#endif
   bool run_cpu = true, run_gpu = true;
   std::vector<std::string> pipelines; // empty means all
   std::string out = "results.csv";
@@ -427,6 +431,13 @@ int cmd_bench(const cli::Args& args) {
   cfg.runs = args.get_int("runs", cfg.runs);
   cfg.cpu_runs = args.get_int("cpu-runs", cfg.cpu_runs);
   cfg.peak_gbps = args.get_double("peak-gbps", cfg.peak_gbps);
+#if defined(HIPAUG_USE_CUDA)
+  if (!args.has("peak-gbps")) {
+    std::fprintf(stderr, "hipaug: NVIDIA benchmarks require --peak-gbps for this device; "
+                         "the MI300X default does not apply\n");
+    return 2;
+  }
+#endif
   cfg.run_cpu = !args.has("no-cpu");
   cfg.run_gpu = !args.has("no-gpu");
   cfg.out = args.get("out", cfg.out);

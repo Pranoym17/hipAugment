@@ -1,13 +1,13 @@
 // Device-side helpers shared by the HIP kernels.
 #pragma once
 
-#include <hip/hip_runtime.h>
+#include "hipaug/runtime.hpp"
 
 #include "hipaug/hipaug.hpp"
 
 namespace hipaug::kernel {
 
-// 16x16 = 256 threads per block: four full 64-thread wavefronts on AMD GPUs.
+// 16x16 = 256 threads: four 64-thread AMD wavefronts or eight 32-thread NVIDIA warps.
 constexpr int kBlockW = 16;
 constexpr int kBlockH = 16;
 

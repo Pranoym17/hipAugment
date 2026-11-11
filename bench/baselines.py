@@ -98,7 +98,13 @@ def main():
     ap.add_argument("--warmup", type=int, default=2)
     ap.add_argument("--runs", type=int, default=10)
     ap.add_argument("--peak-gbps", type=float, default=5300.0)
+    ap.add_argument("--pipelines", default="resize,resize_cmn",
+                    help="comma separated pipelines; only resize and resize_cmn have baselines")
     args = ap.parse_args()
+    pipelines = {p for p in args.pipelines.split(",") if p} or {"resize", "resize_cmn"}
+    if not pipelines.intersection({"resize", "resize_cmn"}):
+        print("baselines.py: no selected pipelines have CPU baselines")
+        return
     out_w, out_h = (int(v) for v in args.size.split("x"))
     out_px = out_w * out_h
 
@@ -123,6 +129,8 @@ def main():
 
         for impl, (pipes, device) in impls.items():
             for pipeline, fn in pipes.items():
+                if pipeline not in pipelines:
+                    continue
                 ms = time_fn(fn, args.warmup, args.runs)
                 median = statistics.median(ms)
                 rd, wr = nbytes[pipeline]

@@ -21,7 +21,7 @@ gtest_discover_tests(hipaug_cpu_tests DISCOVERY_MODE PRE_TEST)
 
 # GPU vs CPU tests. They need a GPU at run time (or the CPU emulation), so they are
 # added as one ctest entry instead of being discovered at build time.
-if(HIPAUG_BUILD_HIP OR HIPAUG_HIP_EMULATION)
+if(HIPAUG_BUILD_HIP OR HIPAUG_HIP_EMULATION OR HIPAUG_BUILD_CUDA)
   add_executable(hipaug_gpu_tests test_gpu.cpp)
   target_include_directories(hipaug_gpu_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
   target_link_libraries(hipaug_gpu_tests PRIVATE hipaug GTest::gtest_main)

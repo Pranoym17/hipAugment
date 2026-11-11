@@ -19,7 +19,7 @@ void usage() {
       "      --op       resize | gaussian_blur | crop_mirror_normalize | fused_rcmn\n"
       "      --batch    images per batch (default 16)\n"
       "      --size     output size, for example 224x224 (not used by gaussian_blur)\n"
-      "      --backend  hip | cpu (default hip when built with HIP)\n"
+      "      --backend  hip | cpu (hip selects the compiled HIP/CUDA GPU backend)\n"
       "      --ksize    blur kernel size, 3 or 5 (default 5)\n"
       "      --sigma    blur sigma (default 1.0)\n"
       "      --mirror   flip every image in x (crop_mirror_normalize, fused_rcmn)\n"
@@ -37,9 +37,9 @@ void usage() {
       "      --warmup     GPU warmup runs (default 10)\n"
       "      --runs       GPU timed runs (default 100)\n"
       "      --cpu-runs   CPU timed runs (default 10)\n"
-      "      --peak-gbps  peak memory bandwidth used for the share column (default 5300)\n"
+      "      --peak-gbps  device peak GB/s (HIP default 5300; required for CUDA builds)\n"
       "      --no-cpu     skip the CPU reference\n"
-      "      --no-gpu     skip the HIP kernels\n");
+      "      --no-gpu     skip the GPU kernels\n");
 }
 
 } // namespace

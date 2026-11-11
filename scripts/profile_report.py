@@ -87,7 +87,10 @@ def main():
                 print(f"warning: no kernel stats in {pdir}", file=sys.stderr)
                 continue
             for name, (calls, avg_ns) in sorted(read_kernel_stats(stats_files[0]).items()):
-                key = next((k for k in KERNEL_BYTES if k in name), None)
+                # Prefer the most specific fragment: fused_rcmn_kernel also contains
+                # cmn_kernel. Keep substring matching for decorated profiler names.
+                key = next((k for k in sorted(KERNEL_BYTES, key=len, reverse=True)
+                            if k in name), None)
                 if key is None:
                     continue
                 src_pipeline, impl = KERNEL_BYTES[key]

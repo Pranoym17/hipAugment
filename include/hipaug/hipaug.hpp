@@ -12,7 +12,7 @@
 #include <cstdint>
 
 #if defined(HIPAUG_HAS_HIP)
-#include <hip/hip_runtime.h>
+#include "hipaug/runtime.hpp"
 #endif
 
 namespace hipaug {
@@ -74,8 +74,9 @@ Status resize(const TensorDesc& in, const uint8_t* src, const Roi* roi, const Te
 Status gaussian_blur(const TensorDesc& in, const uint8_t* src, const Roi* roi, uint8_t* dst,
                      int ksize, float sigma, hipStream_t stream);
 
-// Crop the ROI (ROI size must equal the output size), flip x where mirror[n] != 0,
-// then (x - mean) / std per channel. u8 NHWC -> f32 NCHW.
+// Crop from the ROI origin, flip x where mirror[n] != 0, then normalize each channel.
+// Use an output-sized ROI for a simple crop; smaller ROIs replicate their edge.
+// u8 NHWC -> f32 NCHW.
 Status crop_mirror_normalize(const TensorDesc& in, const uint8_t* src, const Roi* roi,
                              const uint8_t* mirror, const float mean[3], const float std[3],
                              const TensorDesc& out, float* dst, hipStream_t stream);

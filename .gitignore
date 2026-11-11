@@ -1,10 +1,38 @@
-build/
-build-*/
-*.csv
-!docs/*.csv
-profile_out/
-__pycache__/
-*.so
-*.egg-info/
-.vscode/
+# Generated builds and local measurements. Curated docs/*.csv stay publishable.
+/build/
+/build-*/
+/profile_out/
+/bench-output/
+/demo-output/
+/results*.csv
+CMakeFiles/
+CMakeCache.txt
+CTestTestfile.cmake
+Testing/
 compile_commands.json
+.ninja_deps
+.ninja_log
+*.log
+
+# Python environments and compiled extensions.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Local configuration and credentials.
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Personal preparation/session notes; keep public docs under docs/.
+/HANDOFF.md
+/INTERVIEW.md
