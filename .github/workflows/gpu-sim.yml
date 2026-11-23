@@ -1,0 +1,90 @@
+name: GPU Simulator
+
+# Builds the HIP kernels for gfx942 and runs the GPU vs CPU test suite
+# (tests/test_gpu.cpp) on a simulated AMD Instinct MI300X
+# (https://github.com/pantheongpu/pantheonsim). The existing ci.yml runs the
+# kernels on the CPU emulation; this job uses the real HIP runtime and
+# compiler. The simulator has no timing model, so it checks results only.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "src/**"
+      - "include/**"
+      - "tests/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  gpu-tests:
+    name: GPU vs CPU tests (ROCm 7.2 and simulated MI300X)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Set up the simulated GPU and ROCm
+        uses: pantheongpu/setup-pantheonsim@deff5781e8adfd83dec98dd5242dcbc96a564773 # v0.1.10
+        with:
+          gpu: amd/mi300x
+          cuda-toolkit: none
+          rocm: "7.2"
+
+      # find_package(hip) needs the amd_comgr and HSA runtime libraries, which
+      # the action does not install.
+      - name: Install comgr and hsa-rocr
+        run: sudo apt-get install -y comgr hsa-rocr
+
+      # The ROCm clang is the C++ compiler too, because hip::device passes
+      # --offload-arch to every target that links it.
+      - name: Configure
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH=/opt/rocm \
+            -DCMAKE_CXX_COMPILER=/opt/rocm/llvm/bin/clang++ \
+            -DCMAKE_HIP_COMPILER=/opt/rocm/llvm/bin/clang++ \
+            -DCMAKE_HIP_ARCHITECTURES=gfx942 \
+            -DHIPAUG_BUILD_HIP=ON
+
+      - name: Build
+        run: cmake --build build --parallel 3 --target hipaug_gpu_tests hipaug_cli
+
+      - name: Run the GPU tests
+        run: |
+          set +e
+          vgpu run ./build/tests/hipaug_gpu_tests 2>&1 | tee gpu.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -eq 0
+          if grep -Eqi 'VirtualGPU error|no device|no HIP device|SKIPPED|\[  FAILED' gpu.log; then
+            echo "::error::simulator error, skipped or failed test in the log"; exit 1
+          fi
+          grep -Eq '^\[  PASSED  \] [0-9]+ tests?' gpu.log
+          grep -Eq '^\[==========\] 9 tests' gpu.log
+
+      # The CPU emulation in ci.yml never reaches the simulator, so check that
+      # the real HIP runtime reports the simulated device (the benchmark
+      # writes the device name it gets from hipGetDeviceProperties).
+      - name: Check the HIP path ran on the simulated device
+        run: |
+          vgpu run ./build/hipaug bench --batches 1 --pipelines resize --no-cpu \
+            --warmup 1 --runs 1 --out bench.csv 2>&1 | tee bench.log
+          cat bench.csv
+          grep -q '"AMD Instinct MI300X"' bench.csv
